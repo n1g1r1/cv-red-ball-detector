@@ -2,30 +2,35 @@ import cv2 as cv
 import numpy as np
 
 # Ball constants
-ball_radius = 53.6
+ball_radius =   53.6
 ball_distance = 1
 
 # HSV thresholds
-hsv_min = np.array([0, 90, 100])
-hsv_max = np.array([10, 256, 256])
-hsv_min2 = np.array([230, 90, 100])
-hsv_max2 = np.array([256, 256, 256])
+hsv_min =   np.array([0, 90, 100])
+hsv_max =   np.array([10, 256, 256])
+hsv_min2 =  np.array([220, 90, 100])
+hsv_max2 =  np.array([256, 256, 256])
 
-## def red_blob_detector():
+# Circle detection params
+min_dist_between_centers =  100 # Minimal distance between detected centers
+upper_threshold_canny =     100 # The upper threshold for Canny edge detector, 0-255
+center_threshold =          40 # Threshold for center detection, 0-255
+min_radius =                30 # minimum radius of circles
+max_radius =                0 # maximum radius
 
 # Some values
 active = True
 
 # Get camera image
 cameraCapture = cv.VideoCapture(0)
-success, frame = cameraCapture.read()
+output, frame = cameraCapture.read()
 
 # Save image size for camera coordinates calculation
 
-while success and cv.waitKey(1) == -1 and active:
+while output and cv.waitKey(1) == -1 and active:
 
     # Get the actual image
-    success, frame = cameraCapture.read()
+    output, frame = cameraCapture.read()
 
     # TODO: If calibrated: undistort
 
@@ -45,7 +50,7 @@ while success and cv.waitKey(1) == -1 and active:
     thresholded = cv.add(thresholded_lower, thresholded_higher)
 
     # Make kernel
-    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (15,15))
+    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (20,20))
 
     # TODO: Remove noise by Open
     cv.morphologyEx(thresholded, cv.MORPH_OPEN, kernel)
@@ -54,22 +59,27 @@ while success and cv.waitKey(1) == -1 and active:
     cv.morphologyEx(thresholded, cv.MORPH_CLOSE, kernel)
 
     # TODO: Blur the image
-    thresholded = cv.medianBlur(thresholded, 3)
+    thresholded = cv.medianBlur(thresholded, 5)
 
-    # Show the result
-    cv.imshow('Enhanced image', thresholded)
+    cv.imshow('Thresholded', thresholded)
 
     # TODO: Calculate Hough circles
-    # circles = cv.HoughCircles(thresholded, cv.HOUGH_GRADIENT,2, 20, param1=50, param2=20, minRadius=20, maxRadius=200)
+    circles = cv.HoughCircles(thresholded, cv.HOUGH_GRADIENT, 1.2, min_dist_between_centers, param1=upper_threshold_canny, param2=center_threshold, minRadius=min_radius, maxRadius=max_radius)
 
-    # TODO: Draw each circle
-    # circles = np.uint16(np.around(circles))
+    if circles is not None:
 
-    # for i in circles[0,:]:
-    #     cv.circle(frame, i[0], i[1], i[2], (0,255,0),2)
+        circles = circles[0]
 
-    #     cv.circle(frame, i[0], i[1], 2, (0,0,255),3)
+        # TODO: Draw each circle
+        print(circles)
+        circles = np.uint16(np.around(circles))
 
+        print(circles)
+
+        for (x, y, r) in circles:
+            cv.circle(frame, (x, y), r, (0, 255, 0), 2)
+
+            cv.circle(frame, (x, y), 2, (0, 0, 255), 3)
 
     # Show result
     cv.imshow('Detected Circles', frame)
